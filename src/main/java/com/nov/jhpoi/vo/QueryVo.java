@@ -12,8 +12,8 @@ import java.util.Date;
  */
 @Data
 public class QueryVo {
-    private Date StartTime;
-    private Date StopTime;
+    private Date startTime;
+    private Date stopTime;
     private Integer typeId;
     private Integer page;
     private Integer limit;

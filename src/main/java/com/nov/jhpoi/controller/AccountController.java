@@ -47,8 +47,7 @@ public class AccountController {
 
     @PostMapping("/queryData")
     public ResultUtils queryData(@Validated @RequestBody QueryDataVo queryDataVo){
-        String cmdData = commandService.executeCmd("ls /");
-        System.out.println(cmdData);
+        String cmdData = commandService.executeCmd("python3 /root/ZYJspider/spider.py "+queryDataVo.getAccount());
         if(cmdData.equals("0")) {
             return ResultUtils.fail(5000,"账号不存在");
         }else {
@@ -80,7 +79,8 @@ public class AccountController {
                     shopData.addShopData(shop.getShopid(),shop.getShopname(),shop.getShoptime());
                 }
             }
-            return ResultUtils.success(new AccountQueryDataJson(id,JSONObject.parseObject("{\"test\":\"test\"}"),shopData).toJson());
+            cmdData=cmdData.replaceAll("'","\"").replaceAll("False","false");
+            return ResultUtils.success(new AccountQueryDataJson(id,JSONObject.parseObject(cmdData),shopData).toJson());
         }
     }
 
@@ -94,8 +94,8 @@ public class AccountController {
         List<Account> accountList=pageInfo.getList();
         JSONArray jsonArray=new JSONArray();
         for(Account account:accountList) {
-            String cmdData = commandService.executeCmd("ls /");
-            System.out.println(cmdData);
+            String cmdData = commandService.executeCmd("python3 /root/ZYJspider/spider.py "+account.getAccount());
+            cmdData=cmdData.replaceAll("'","\"").replaceAll("False","false");
             jsonArray.add(JSONObject.parseObject(cmdData));
         }
         return ResultUtils.success(new AccountQueryJson(pageInfo.getPageNum(), pageInfo.getPages(), jsonArray));
