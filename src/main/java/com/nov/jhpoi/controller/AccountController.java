@@ -34,7 +34,7 @@ import java.util.UUID;
  * Date: 2021/1/27 1:08 上午
  */
 @RestController
-@RequestMapping(value = "/account",produces = MediaType.APPLICATION_JSON_VALUE,consumes = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = "/api/account",produces = MediaType.APPLICATION_JSON_VALUE,consumes = MediaType.APPLICATION_JSON_VALUE)
 public class AccountController {
     @Autowired
     AccountService accountService;

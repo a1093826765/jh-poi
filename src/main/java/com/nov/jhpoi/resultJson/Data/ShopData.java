@@ -27,7 +27,7 @@ public class ShopData {
         jsonObject.put("shopId",shopId);
         jsonObject.put("shopName",shopName);
         jsonObject.put("shopTime",shopTime);
-        this.jsonArray.add(jsonObject);
+        jsonArray.add(jsonObject);
     }
     
 }

@@ -20,7 +20,7 @@ public class InterceptorConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         //配置拦截的请求
-        registry.addInterceptor(authInterceptor()).addPathPatterns("/**");
+        registry.addInterceptor(authInterceptor()).addPathPatterns("/api/**");
     }
 
     @Bean
