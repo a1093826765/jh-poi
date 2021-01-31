@@ -73,17 +73,17 @@ public class ShopController {
      * @param 
      * @return
      */
-    @PostMapping("/query")
-    public ResultUtils query(){
-        List<Shop> shopList = shopService.getShopByExample(new ShopExample());
-        JSONArray jsonArray=new JSONArray();
-        for(Shop shop:shopList){
-            JSONObject jsonObject=new JSONObject();
-            jsonObject.put("shopId",shop.getId());
-            jsonObject.put("shopName",shop.getShopname());
-            jsonObject.put("id",shop.getId());
-            jsonArray.add(jsonObject);
-        }
-        return ResultUtils.success();
-    }
+//    @PostMapping("/query")
+//    public ResultUtils query(){
+//        List<Shop> shopList = shopService.getShopByExample(new ShopExample());
+//        JSONArray jsonArray=new JSONArray();
+//        for(Shop shop:shopList){
+//            JSONObject jsonObject=new JSONObject();
+//            jsonObject.put("shopId",shop.getId());
+//            jsonObject.put("shopName",shop.getShopname());
+//            jsonObject.put("id",shop.getId());
+//            jsonArray.add(jsonObject);
+//        }
+//        return ResultUtils.success(jsonArray);
+//    }
 }

@@ -32,7 +32,7 @@ public class WeChatController {
      * @return
      */
     @PostMapping("/query")
-    public ResultUtils insertData(){
+    public ResultUtils query(){
         List<WeChat> weChatList = weChatService.getWeChatByExample(new WeChatExample());
         JSONArray jsonArray=new JSONArray();
         for(WeChat weChat:weChatList){

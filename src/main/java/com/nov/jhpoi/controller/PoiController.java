@@ -32,7 +32,7 @@ public class PoiController {
      */
     @RequestMapping(value = "/fileUpload",method = RequestMethod.POST,
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Object> fileUpload(@RequestParam("file") MultipartFile file, HttpServletRequest request){
+    public ResultUtils fileUpload(@RequestParam("file") MultipartFile file, HttpServletRequest request){
         return poiService.fileUpload(file);
     }
 

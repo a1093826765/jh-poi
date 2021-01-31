@@ -21,9 +21,7 @@ public class QueryVo {
 
     private String sex;
 
-    private String shopName;
-
-    private String id;
+//    private String shopName;
 
     /**
      * 微信号Id

@@ -7,10 +7,7 @@ import com.nov.jhpoi.sql.service.ShopService;
 import com.nov.jhpoi.sql.service.WeChatService;
 import com.nov.jhpoi.utils.pojo.ResultUtils;
 import org.apache.poi.hssf.usermodel.*;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,8 +40,9 @@ public class PoiServiceImpl implements PoiService {
 
     @Override
     public ResultUtils fileUpload(MultipartFile file) {
+        int successNum=0;
         if (!Utils.checkExtension(file)) {
-            return ResultUtils.fail(5000,"请求文件类型错误:后缀名错误");
+            return ResultUtils.fail(5000,"请求文件类型错误:后缀名错误"+"-->成功:"+successNum+"行数据");
         }
         try {
             if (Utils.isOfficeFile(file)) {
@@ -59,29 +57,32 @@ public class PoiServiceImpl implements PoiService {
                 //读第一个sheet
                 for (int i = 2; i < rows; i++) {
                     Row row = sheet.getRow(i);
-                   pd=0;
-                    for (int j = 0; j < row.getLastCellNum(); j++) {
+                    pd=0;
+                    for (int j = 0; j < 7; j++) {
                         pd++;
                         Cell cell = row.getCell(j);
                         if (cell != null) {
                             //非空判断完成
                         }else {
-                            return ResultUtils.fail(5000,"文件内部数据空值");
+                            return ResultUtils.fail(5000,"文件内部数据存在空值"+"-->成功:"+successNum+"行数据");
                         }
                     }
-                    if(pd<=0 || pd>=7){
-                        return ResultUtils.fail(5000,"文件内部数据有多余或空值");
+                    if(row.getCell(0).toString().equals("")){
+                        break;
                     }
-                    setSqlData(row.getCell(1).toString(),row.getCell(2).toString(), DateUtil.parse(row.getCell(3).toString()),row.getCell(4).toString(),row.getCell(5).toString(),row.getCell(6).toString());
-
+                    Cell cell=row.getCell(3);
+                    cell.setCellType(CellType.STRING);
+                    Date date =HSSFDateUtil.getJavaDate(Double.parseDouble(cell.getStringCellValue()));
+                    setSqlData(row.getCell(1).toString(),row.getCell(2).toString(), date,row.getCell(4).toString(),row.getCell(5).toString(),row.getCell(6).toString());
+                    successNum++;
                 }
             } else {
-                return ResultUtils.fail(5000,"请求文件类型错误:文件类型错误");
+                return ResultUtils.fail(5000,"请求文件类型错误:文件类型错误"+"-->成功:"+successNum+"行数据");
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return ResultUtils.success();
+        return ResultUtils.success("成功:"+successNum+"行数据");
     }
 
     @Override
@@ -138,43 +139,72 @@ public class PoiServiceImpl implements PoiService {
     }
 
     Account accountSql=new Account();
-    String id;
-    Shop shop=new Shop();
+    AccountExample accountExample=new AccountExample();
+    Shop shopSql=new Shop();
+    ShopExample shopExample=new ShopExample();
+    WeChatExample weChatExample=new WeChatExample();
+    WeChat weChatSql=new WeChat();
+
+
     public void setSqlData(String account, String weChatNum, Date shopTime, String shopName, String shopMoney, String shopWeChatNum){
-        WeChat weChatSql=pdWeChat(shopWeChatNum);
-        id=UUID.randomUUID().toString();
-        accountSql.setId(id);
-        accountSql.setSex("");
-        accountSql.setAccount(account);
-        accountSql.setTime(DateUtil.date(System.currentTimeMillis()));
-        accountSql.setWechat(weChatNum);
-        accountSql.setWechatid(weChatSql.getWechatid());
-
-        shop.setShopmoney(shopMoney);
-        shop.setShoptime(shopTime);
-        shop.setShopname(shopName);
-        shop.setId(id);
-        shop.setShopid(UUID.randomUUID().toString());
-
-        accountService.save(accountSql);
-        shopService.save(shop);
+        pdWeChat(shopWeChatNum);
+        pdAccount(account,weChatNum);
+        pdShop(shopMoney,shopTime,shopName);
     }
 
-    WeChatExample weChatExample=new WeChatExample();
-    WeChat weChat=new WeChat();
-    public WeChat pdWeChat(String weChatNum){
+    public void pdShop(String shopMoney,Date shopTime,String shopName){
+        ShopExample.Criteria shopExampleCriteria = shopExample.createCriteria();
+        shopExampleCriteria.andShopmoneyEqualTo(shopMoney);
+        shopExampleCriteria.andShoptimeEqualTo(shopTime);
+        shopExampleCriteria.andShopnameEqualTo(shopName);
+        List<Shop> shopList = shopService.getShopByExample(shopExample);
+        if(shopList.size()<=0){
+            shopSql.setShopmoney(shopMoney);
+            shopSql.setShoptime(shopTime);
+            shopSql.setShopname(shopName);
+            shopSql.setId(accountSql.getId());
+            shopSql.setShopid(UUID.randomUUID().toString());
+            shopService.save(shopSql);
+        }else {
+            shopSql=shopList.get(0);
+        }
+        shopExample.clear();
+    }
+
+    public void pdWeChat(String weChatNum){
 
         WeChatExample.Criteria weChatExampleCriteria = weChatExample.createCriteria();
         weChatExampleCriteria.andWechatnumEqualTo(weChatNum);
         List<WeChat> weChatList = weChatService.getWeChatByExample(weChatExample);
         if(weChatList.size()<=0){
-            weChat.setWechatid(UUID.randomUUID().toString());
-            weChat.setWechatnum(weChatNum);
-            weChatService.save(weChat);
-            return weChat;
+            weChatSql.setWechatid(UUID.randomUUID().toString());
+            weChatSql.setWechatnum(weChatNum);
+            weChatService.save(weChatSql);
         }else{
-            return weChatList.get(0);
+            weChatSql=weChatList.get(0);
         }
+        weChatExample.clear();
+    }
+
+
+
+    public void pdAccount(String account,String weChatNum){
+        AccountExample.Criteria accountExampleCriteria = accountExample.createCriteria();
+        accountExampleCriteria.andAccountEqualTo(account);
+        List<Account> accountList = accountService.getAccountByExample(accountExample);
+        if(accountList.size()<=0){
+            accountSql.setId(UUID.randomUUID().toString());
+            accountSql.setTime(DateUtil.date(System.currentTimeMillis()));
+            accountSql.setSex("");
+            accountSql.setAccount(account);
+
+            accountSql.setWechat(weChatNum);
+            accountSql.setWechatid(weChatSql.getWechatid());
+            accountService.save(accountSql);
+        }else{
+            accountSql=accountList.get(0);
+        }
+        accountExample.clear();
     }
 }
 
