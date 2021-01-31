@@ -1,4 +1,4 @@
-package com.nov.jhpoi.vo;
+package com.nov.jhpoi.vo.shop;
 
 import com.sun.istack.internal.NotNull;
 import lombok.Data;
@@ -13,10 +13,12 @@ import java.util.Date;
  * Date: 2021/1/27 12:53 下午
  */
 @Data
-public class InsertDataVo {
+public class InsertVo {
     private String id;
 
     private String shopName;
+
+    private String shopMoney;
 
     private Date shopTime;
 }

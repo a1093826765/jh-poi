@@ -1,6 +1,7 @@
 package com.nov.jhpoi.utils.poi;
 
 
+import com.nov.jhpoi.utils.pojo.ResultUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,7 +19,7 @@ public interface PoiService {
      * @param file
      * @return
      */
-    ResponseEntity fileUpload(MultipartFile file);
+    ResultUtils fileUpload(MultipartFile file);
 
     /**
      * 下载/导出

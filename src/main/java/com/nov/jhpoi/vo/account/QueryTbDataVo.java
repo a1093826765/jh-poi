@@ -1,4 +1,4 @@
-package com.nov.jhpoi.vo;
+package com.nov.jhpoi.vo.account;
 
 import com.sun.istack.internal.NotNull;
 import lombok.Data;
@@ -10,6 +10,6 @@ import lombok.Data;
  * Date: 2021/1/27 1:18 上午
  */
 @Data
-public class QueryDataVo {
+public class QueryTbDataVo {
     private String account;
 }

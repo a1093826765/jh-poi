@@ -13,20 +13,23 @@ import lombok.Data;
  */
 @Data
 public class AccountQueryDataJson {
-    private JSONObject cmdData;
+    private JSONObject cmdTbData;
+    private JSONObject cmdWxData;
     private ShopData shopData;
     private String id;
 
-    public AccountQueryDataJson(String id, JSONObject cmdData, ShopData shopData) {
+    public AccountQueryDataJson(String id, JSONObject cmdTbData,JSONObject cmdWxData, ShopData shopData) {
         this.id=id;
-        this.cmdData = cmdData;
+        this.cmdWxData=cmdWxData;
+        this.cmdTbData = cmdTbData;
         this.shopData = shopData;
     }
 
     public JSONObject toJson() {
         JSONObject jsonObject=new JSONObject();
         jsonObject.put("id",id);
-        jsonObject.put("cmdData",cmdData);
+        jsonObject.put("cmdTbData",cmdTbData);
+        jsonObject.put("cmdWxData",cmdWxData);
         jsonObject.put("shopData",shopData.getJsonArray());
         return jsonObject;
     }

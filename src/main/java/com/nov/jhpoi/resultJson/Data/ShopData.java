@@ -22,10 +22,11 @@ public class ShopData {
         this.jsonArray = jsonArray;
     }
 
-    public void addShopData(String shopId, String shopName, Date shopTime) {
+    public void addShopData(String shopId, String shopName, Date shopTime,String shopMoney) {
         JSONObject jsonObject=new JSONObject();
         jsonObject.put("shopId",shopId);
         jsonObject.put("shopName",shopName);
+        jsonObject.put("shopMoney",shopMoney);
         jsonObject.put("shopTime",shopTime);
         jsonArray.add(jsonObject);
     }

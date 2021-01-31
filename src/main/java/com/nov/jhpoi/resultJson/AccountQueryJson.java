@@ -14,9 +14,11 @@ import lombok.Data;
 public class AccountQueryJson {
     private Integer page;
     private Integer pageSize;
+    private Integer dataSize;
     private JSONArray jsonArray;
 
-    public AccountQueryJson(Integer page, Integer pageSize, JSONArray jsonArray) {
+    public AccountQueryJson(Integer dataSize,Integer page, Integer pageSize, JSONArray jsonArray) {
+        this.dataSize=dataSize;
         this.page = page;
         this.pageSize = pageSize;
         this.jsonArray = jsonArray;
@@ -25,6 +27,7 @@ public class AccountQueryJson {
     public JSONObject toJson(){
         JSONObject jsonObject=new JSONObject();
         jsonObject.put("page",page);
+        jsonObject.put("dataSize",dataSize);
         jsonObject.put("pageSize",pageSize);
         jsonObject.put("list",jsonArray);
         return jsonObject;
