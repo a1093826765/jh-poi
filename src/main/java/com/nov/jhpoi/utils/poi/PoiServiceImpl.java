@@ -1,6 +1,7 @@
 package com.nov.jhpoi.utils.poi;
 
 import cn.hutool.core.date.DateUtil;
+import com.nov.jhpoi.bean.PoiBean;
 import com.nov.jhpoi.sql.model.*;
 import com.nov.jhpoi.sql.service.AccountService;
 import com.nov.jhpoi.sql.service.ShopService;
@@ -9,8 +10,6 @@ import com.nov.jhpoi.utils.pojo.ResultUtils;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,6 +37,11 @@ public class PoiServiceImpl implements PoiService {
     @Autowired
     private WeChatService weChatService;
 
+    /**
+     * 文件上传
+     * @param file
+     * @return
+     */
     @Override
     public ResultUtils fileUpload(MultipartFile file) {
         int successNum=0;
@@ -52,29 +56,51 @@ public class PoiServiceImpl implements PoiService {
                 Sheet sheet = workbook.getSheetAt(0);
                 //获得sheet有多少行
                 int rows = sheet.getPhysicalNumberOfRows();
-                //用于验证文件数据是否足够
-                int pd;
+
+                PoiBean poiBean=new PoiBean();
+
                 //读第一个sheet
                 for (int i = 2; i < rows; i++) {
                     Row row = sheet.getRow(i);
-                    pd=0;
+                    Cell cell=row.getCell(0);
+                    cell.setCellType(CellType.STRING);
+                    if("".equals(cell.getStringCellValue())){
+                        //序号为空，停止读取
+                        break;
+                    }
                     for (int j = 0; j < 7; j++) {
-                        pd++;
-                        Cell cell = row.getCell(j);
+                        cell = row.getCell(j);
                         if (cell != null) {
-                            //非空判断完成
+                            cell.setCellType(CellType.STRING);
+                            switch (j){
+                                case 1:
+                                    poiBean.setAccountNum(cell.getStringCellValue());
+                                    break;
+                                case 2:
+                                    poiBean.setWeChatNum(cell.getStringCellValue());
+                                    break;
+                                case 3:
+                                    Date date =HSSFDateUtil.getJavaDate(Double.parseDouble(cell.getStringCellValue()));
+                                    poiBean.setTime(date);
+                                    break;
+                                case 4:
+                                    poiBean.setShopName(cell.getStringCellValue());
+                                    break;
+                                case 5:
+                                    poiBean.setShopMoney(cell.getStringCellValue());
+                                    break;
+                                case 6:
+                                    poiBean.setShopWeChatNum(cell.getStringCellValue());
+                                    break;
+                            }
+
                         }else {
                             return ResultUtils.fail(5000,"文件内部数据存在空值"+"-->成功:"+successNum+"行数据");
                         }
                     }
-                    if(row.getCell(0).toString().equals("")){
-                        break;
-                    }
-                    Cell cell=row.getCell(3);
-                    cell.setCellType(CellType.STRING);
-                    Date date =HSSFDateUtil.getJavaDate(Double.parseDouble(cell.getStringCellValue()));
-                    setSqlData(row.getCell(1).toString(),row.getCell(2).toString(), date,row.getCell(4).toString(),row.getCell(5).toString(),row.getCell(6).toString());
+                    setSqlData(poiBean);
                     successNum++;
+
                 }
             } else {
                 return ResultUtils.fail(5000,"请求文件类型错误:文件类型错误"+"-->成功:"+successNum+"行数据");
@@ -85,6 +111,10 @@ public class PoiServiceImpl implements PoiService {
         return ResultUtils.success("成功:"+successNum+"行数据");
     }
 
+    /**
+     * 文件下载
+     * @param response
+     */
     @Override
     public void downLoadExcel(HttpServletResponse response) {
         HSSFWorkbook workbook = new HSSFWorkbook();
@@ -146,12 +176,22 @@ public class PoiServiceImpl implements PoiService {
     WeChat weChatSql=new WeChat();
 
 
-    public void setSqlData(String account, String weChatNum, Date shopTime, String shopName, String shopMoney, String shopWeChatNum){
-        pdWeChat(shopWeChatNum);
-        pdAccount(account,weChatNum);
-        pdShop(shopMoney,shopTime,shopName);
+    /**
+     * 将文档每行数据写入数据库
+     * @param poiBean
+     */
+    public void setSqlData(PoiBean poiBean){
+        pdWeChat(poiBean.getShopWeChatNum());
+        pdAccount(poiBean.getAccountNum(),poiBean.getWeChatNum());
+        pdShop(poiBean.getShopMoney(),poiBean.getTime(),poiBean.getShopName());
     }
 
+    /**
+     * 判断店铺是否存在，不存在则写入，存在则忽略
+     * @param shopMoney
+     * @param shopTime
+     * @param shopName
+     */
     public void pdShop(String shopMoney,Date shopTime,String shopName){
         ShopExample.Criteria shopExampleCriteria = shopExample.createCriteria();
         shopExampleCriteria.andShopmoneyEqualTo(shopMoney);
@@ -171,6 +211,10 @@ public class PoiServiceImpl implements PoiService {
         shopExample.clear();
     }
 
+    /**
+     * 判断本地微信号是否存在，不存在则写入，存在则忽略
+     * @param weChatNum
+     */
     public void pdWeChat(String weChatNum){
 
         WeChatExample.Criteria weChatExampleCriteria = weChatExample.createCriteria();
@@ -186,15 +230,18 @@ public class PoiServiceImpl implements PoiService {
         weChatExample.clear();
     }
 
-
-
+    /**
+     * 判断旺旺是否存在，不存在则写入，存在则忽略
+     * @param account
+     * @param weChatNum
+     */
     public void pdAccount(String account,String weChatNum){
         AccountExample.Criteria accountExampleCriteria = accountExample.createCriteria();
         accountExampleCriteria.andAccountEqualTo(account);
         List<Account> accountList = accountService.getAccountByExample(accountExample);
         if(accountList.size()<=0){
             accountSql.setId(UUID.randomUUID().toString());
-            accountSql.setTime(DateUtil.date(System.currentTimeMillis()));
+            accountSql.setTime(new Date());
             accountSql.setSex("");
             accountSql.setAccount(account);
 

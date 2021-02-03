@@ -3,7 +3,6 @@ package com.nov.jhpoi.controller;
 import cn.hutool.core.date.DateUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.github.pagehelper.PageInfo;
 import com.nov.jhpoi.resultJson.AccountQueryJson;
 import com.nov.jhpoi.resultJson.Data.ShopData;
 import com.nov.jhpoi.resultJson.AccountQueryDataJson;
@@ -13,6 +12,7 @@ import com.nov.jhpoi.sql.service.ShopService;
 import com.nov.jhpoi.sql.service.WeChatService;
 import com.nov.jhpoi.utils.linux.CommandService;
 import com.nov.jhpoi.utils.pojo.ResultUtils;
+import com.nov.jhpoi.vo.account.UpdateWeChatVo;
 import com.nov.jhpoi.vo.account.QueryTbDataVo;
 import com.nov.jhpoi.vo.account.QueryVo;
 import com.nov.jhpoi.vo.account.QueryWxDataVo;
@@ -57,58 +57,80 @@ public class AccountController {
      */
     @PostMapping("/queryTbData")
     public ResultUtils queryTbData(@Validated @RequestBody QueryTbDataVo queryTbDataVo) {
-//        String cmdData = commandService.executeCmd("python3 /root/ZYJspider/spider.py tb "+queryTbDataVo.getAccount());
-        String cmdData = "{'type1Ph': 0, 'result': '正常', 'nearWeekShop': 11, 'sex': '男', 'vip_level': '0', 'badNum': 0, 'lastWeekShop': 5, 'type6Ph': 0, 'type3Ph': 0, 'yunBlack': 0, 'lowVip3': 'no', 'received_rate': '100.00%', 'downNum': 1,'costType': 'costType5', 'created': '2003-06-22 06:59:25(约17.62年)', 'type1': 0, 'goodNum': 0, 'type3': 1, 'type2': 1, 'type2Ph': 0, 'type5': 0, 'type4': 1, 'type6': 0, 'isNeedCost': False, 'item_num': 0, 'costMonsteoin': 0, 'aliimSim': '哈哈', 'proveNum': 0, 'nameconform_word': '未实名', 'buyerAvg': '0.00', 'buyerCre': '0心', 'queryTime': '2021-01-31 19:30:34', 'vip_info': 'vip0', 'type5Ph': 0, 'registDay': '6433天', 'sellerCre':'未开店', 'nameconform_word_color': '#808080', 'ifShow': 'yes', 'type4Ph': 0}";
-        ResultUtils resultUtils = pdCmdData(cmdData);
+        String cmdData = commandService.executeCmd("python3 /root/ZYJspider/spider.py tb "+queryTbDataVo.getAccount());
+        System.out.println(cmdData);
+//        String cmdData = "{'type1Ph': 0, 'result': '正常', 'nearWeekShop': 11, 'sex': '男', 'vip_level': '0', 'badNum': 0, 'lastWeekShop': 5, 'type6Ph': 0, 'type3Ph': 0, 'yunBlack': 0, 'lowVip3': 'no', 'received_rate': '100.00%', 'downNum': 1,'costType': 'costType5', 'created': '2003-06-22 06:59:25(约17.62年)', 'type1': 0, 'goodNum': 0, 'type3': 1, 'type2': 1, 'type2Ph': 0, 'type5': 0, 'type4': 1, 'type6': 0, 'isNeedCost': False, 'item_num': 0, 'costMonsteoin': 0, 'aliimSim': '哈哈', 'proveNum': 0, 'nameconform_word': '未实名', 'buyerAvg': '0.00', 'buyerCre': '0心', 'queryTime': '2021-01-31 19:30:34', 'vip_info': 'vip0', 'type5Ph': 0, 'registDay': '6433天', 'sellerCre':'未开店', 'nameconform_word_color': '#808080', 'ifShow': 'yes', 'type4Ph': 0}";
+        ResultUtils resultUtils = pdCmdDataOne(cmdData);
         if (resultUtils == null) {
+            //查询结果无问题
             JSONObject cmdDataJson;
             try {
+                //查询结果转json
                 cmdDataJson = JSONObject.parseObject(cmdData.replaceAll("'", "\"").replaceAll("False", "false"));
             } catch (Exception e) {
                 return ResultUtils.fail(500, cmdData);
             }
-            String sex = (String) cmdDataJson.get("sex");
+
+            //打标数
+            int tbNum = 0;
+            for (int i = 1; i <= 6; i++) {
+                tbNum += (Integer) cmdDataJson.get("type" + i);
+            }
+            cmdDataJson.put("tbNum", tbNum);
+
+            //查询旺旺是否存在，存在则获取，不存在则保存到数据库
             AccountExample accountExample = new AccountExample();
             AccountExample.Criteria accountExampleCriteria = accountExample.createCriteria();
             accountExampleCriteria.andAccountEqualTo(queryTbDataVo.getAccount());
             List<Account> accountList = accountService.getAccountByExample(accountExample);
 
+            //旺旺号id
             String id;
+            //店铺返回
             ShopData shopData = new ShopData(new JSONArray());
             Account account;
-            JSONObject cmdWxDataJson = null;
+            //微信查询json
+            JSONObject cmdWxDataJson = new JSONObject();
             if (accountList.size() <= 0) {
-                //旺旺号不存在
-                Date date = DateUtil.date(System.currentTimeMillis());
+                //旺旺号不存在,保存旺旺
                 id = UUID.randomUUID().toString();
                 account = new Account();
                 account.setId(id);
                 account.setAccount(queryTbDataVo.getAccount());
-                account.setSex(sex);
-                account.setTime(date);
+                account.setSex((String) cmdDataJson.get("sex"));
+                account.setTime(new Date());
                 accountService.save(account);
             } else {
-                //旺旺号存在
+                //旺旺号存在，获取旺旺号
                 account = accountList.get(0);
                 id = account.getId();
+
+                //根据旺旺号查询店铺
                 ShopExample shopExample = new ShopExample();
                 shopExample.setOrderByClause("shopTime desc");
                 ShopExample.Criteria shopExampleCriteria = shopExample.createCriteria();
                 shopExampleCriteria.andIdEqualTo(account.getId());
                 List<Shop> shopList = shopService.getShopByExample(shopExample);
                 for (Shop shop : shopList) {
+                    //向店铺返回添加数据
                     shopData.addShopData(shop.getShopid(), shop.getShopname(), shop.getShoptime(), shop.getShopmoney());
                 }
-                if (account.getWechat() != null) {
-                    String cmdWxData = "{'name': 'aa1610148754', 'fox': '有', 'crocodile': '无'}";
-//                    String cmdWxData = commandService.executeCmd("python3 /root/ZYJspider/spider.py wx "+account.getWechat());
-                    try {
-                        cmdWxDataJson = JSONObject.parseObject(cmdWxData.replaceAll("'", "\"").replaceAll("False", "false"));
-                    } catch (Exception e) {
-                        return ResultUtils.fail(500, "WX:  " + cmdData);
+
+                if (account.getWechat() != null  && !"".equals(account.getWechat())) {
+                    //旺旺对应的微信号不为空
+                    cmdWxDataJson=twoQueryWxData(cmdWxDataJson,account);
+                    if(cmdWxDataJson.size()!=0){
+                        cmdDataJson.put("weChatNum",account.getWechat());
                     }
                 }
             }
+            String shopWeChatNum=null;
+            if(account.getWechatid()!=null){
+                WeChatKey weChatKey=new WeChatKey();
+                weChatKey.setWechatid(account.getWechatid());
+                shopWeChatNum = weChatService.getWeChatByKey(weChatKey).getWechatnum();
+            }
+            cmdDataJson.put("shopWeChatNum",shopWeChatNum);
             return ResultUtils.success(new AccountQueryDataJson(id, cmdDataJson, cmdWxDataJson, shopData).toJson());
         } else {
             return resultUtils;
@@ -123,9 +145,9 @@ public class AccountController {
      */
     @PostMapping("/queryWxData")
     public ResultUtils queryWxData(@Validated @RequestBody QueryWxDataVo queryWxDataVo) {
-        String cmdData = "{'name': 'aa1610148754', 'fox': '有', 'crocodile': '无'}";
-//        String cmdData = commandService.executeCmd("python3 /root/ZYJspider/spider.py wx "+queryWxDataVo.getWeChatNum());
-        ResultUtils resultUtils = pdCmdData(cmdData);
+//        String cmdData = "{'name': 'aa1610148754', 'fox': '有', 'crocodile': '无'}";
+        String cmdData = commandService.executeCmd("python3 /root/ZYJspider/spider.py wx "+queryWxDataVo.getWeChatNum());
+        ResultUtils resultUtils = pdCmdDataOne(cmdData);
         if (resultUtils == null) {
             JSONObject cmdDataJson;
             try {
@@ -163,23 +185,26 @@ public class AccountController {
         accountExampleCriteria2.andWechatidEqualTo(queryVo.getWeChatId());
         //条件一 or 条件二
         accountExample.or(accountExampleCriteria2);
-        //分页查询
-        PageInfo pageInfo = accountService.getMenus(queryVo.getPage(), queryVo.getLimit(), accountExample);
-        List<Account> accountList = pageInfo.getList();
+        //查询
+        List<Account> accountList = accountService.getAccountByExample(accountExample);
 
         JSONArray jsonArray = new JSONArray();
+        //降权值
         int num;
         for (Account account : accountList) {
-            String cmdData = "{'type1Ph': 0, 'result': '正常', 'nearWeekShop': 11, 'sex': '男', 'vip_level': '0', 'badNum': 0, 'lastWeekShop': 5, 'type6Ph': 0, 'type3Ph': 0, 'yunBlack': 0, 'lowVip3': 'no', 'received_rate': '100.00%', 'downNum': 1,'costType': 'costType5', 'created': '2003-06-22 06:59:25(约17.62年)', 'type1': 0, 'goodNum': 0, 'type3': 1, 'type2': 1, 'type2Ph': 0, 'type5': 0, 'type4': 1, 'type6': 0, 'isNeedCost': False, 'item_num': 0, 'costMonsteoin': 0, 'aliimSim': '哈哈', 'proveNum': 0, 'nameconform_word': '未实名', 'buyerAvg': '0.00', 'buyerCre': '0心', 'queryTime': '2021-01-31 19:30:34', 'vip_info': 'vip0', 'type5Ph': 0, 'registDay': '6433天', 'sellerCre':'未开店', 'nameconform_word_color': '#808080', 'ifShow': 'yes', 'type4Ph': 0}";
-//            String cmdData = commandService.executeCmd("python3 /root/ZYJspider/spider.py tb " + account.getAccount());
+//            String cmdData = "{'type1Ph': 0, 'result': '正常', 'nearWeekShop': 11, 'sex': '男', 'vip_level': '0', 'badNum': 0, 'lastWeekShop': 5, 'type6Ph': 0, 'type3Ph': 0, 'yunBlack': 0, 'lowVip3': 'no', 'received_rate': '100.00%', 'downNum': 1,'costType': 'costType5', 'created': '2003-06-22 06:59:25(约17.62年)', 'type1': 0, 'goodNum': 0, 'type3': 1, 'type2': 1, 'type2Ph': 0, 'type5': 0, 'type4': 1, 'type6': 0, 'isNeedCost': False, 'item_num': 0, 'costMonsteoin': 0, 'aliimSim': '哈哈', 'proveNum': 0, 'nameconform_word': '未实名', 'buyerAvg': '0.00', 'buyerCre': '0心', 'queryTime': '2021-01-31 19:30:34', 'vip_info': 'vip0', 'type5Ph': 0, 'registDay': '6433天', 'sellerCre':'未开店', 'nameconform_word_color': '#808080', 'ifShow': 'yes', 'type4Ph': 0}";
+//                String cmdData="0";
+            String cmdData = commandService.executeCmd("python3 /root/ZYJspider/spider.py tb " + account.getAccount());
             if ("{'iff': 'y'}".equals(cmdData)) {
                 return ResultUtils.fail(5002, "请登录捉妖镜输入验证码");
             }
-            JSONObject cmdDataJson = null;
             if ("0".equals(cmdData)) {
                 //账号不存在
-                cmdDataJson.put("status", "账号不存在");
+                AccountKey accountKey=new AccountKey();
+                accountKey.setId(account.getId());
+                accountService.deleteByKey(accountKey);
             } else {
+                JSONObject cmdDataJson;
                 //账号存在
 
                 try {
@@ -197,11 +222,20 @@ public class AccountController {
                 if (sex.equals(queryVo.getSex())) {
 
                     //微信号与本地微信号
-                    cmdDataJson.put("weChat", account.getWechat());
                     WeChatKey weChatKey = new WeChatKey();
                     weChatKey.setWechatid(account.getWechatid());
                     WeChat weChat = weChatService.getWeChatByKey(weChatKey);
                     cmdDataJson.put("ShopWeChat", weChat.getWechatnum());
+
+                    JSONObject cmdWxDataJson=new JSONObject();
+                    if(account.getWechat()!=null && !"".equals(account.getWechat())){
+                        //旺旺对应的微信号不为空
+                        cmdWxDataJson=twoQueryWxData(cmdWxDataJson,account);
+                        if(cmdWxDataJson.size()!=0){
+                            cmdDataJson.put("weChatNum",account.getWechat());
+                        }
+                    }
+                    cmdDataJson.put("wxData",cmdWxDataJson);
 
                     //筛选已降权与未降权
                     num = 0;
@@ -209,42 +243,119 @@ public class AccountController {
                         num += (Integer) cmdDataJson.get("type" + i);
                     }
                     cmdDataJson.put("account", account.getAccount());
+                    cmdDataJson.put("num", num);
                     if (queryVo.getPowerDownId() == 0 && num == 0) {
                         //未降权
-                        cmdDataJson.put("status", "未打标");
-                        cmdDataJson.put("num", num);
                         jsonArray.add(cmdDataJson);
                     } else if (queryVo.getPowerDownId() == 1 && num != 0) {
                         //已降权
-                        cmdDataJson.put("status", "已打标");
-                        cmdDataJson.put("num", num);
                         jsonArray.add(cmdDataJson);
                     }
-
                 }
             }
-
         }
-        return ResultUtils.success(new AccountQueryJson(accountList.size(), pageInfo.getPageNum(), pageInfo.getPages(), jsonArray).toJson());
+        return ResultUtils.success(new AccountQueryJson(jsonArray).toJson());
     }
 
     /**
-     * 判断python返回
+     * 修改本地微信号与微信号
+     * @param
+     * @return
+     */
+    @PostMapping("/updateWeChat")
+    public ResultUtils updateWeChat(@Validated @RequestBody UpdateWeChatVo updateWeChatVo){
+        AccountKey accountKey=new AccountKey();
+        accountKey.setId(updateWeChatVo.getId());
+        Account account = accountService.getAccountByKey(accountKey);
+
+        if(account!=null) {
+            WeChatExample weChatExample = new WeChatExample();
+            WeChatExample.Criteria weChatExampleCriteria = weChatExample.createCriteria();
+            weChatExampleCriteria.andWechatnumEqualTo(updateWeChatVo.getShopWeChatNum());
+            List<WeChat> weChatList = weChatService.getWeChatByExample(weChatExample);
+            String weChatId;
+            if (weChatList.size() > 0) {
+                WeChat weChat = weChatList.get(0);
+                weChat.setWechatnum(updateWeChatVo.getShopWeChatNum());
+                weChatService.updateByKey(weChat);
+                weChatId = weChat.getWechatid();
+            } else {
+                WeChat weChat = new WeChat();
+                weChatId = UUID.randomUUID().toString();
+                weChat.setWechatid(weChatId);
+                weChat.setWechatnum(updateWeChatVo.getShopWeChatNum());
+                weChatService.save(weChat);
+            }
+            account.setWechat(updateWeChatVo.getWeChatNum());
+            account.setWechatid(weChatId);
+            accountService.updateByKey(account);
+            return ResultUtils.success();
+        }else {
+            return ResultUtils.fail(5000,"该账号不存在");
+        }
+    }
+
+    /**
+     * 二级微信查询
+     * @param cmdWxDataJson
+     * @param account
+     * @return
+     */
+    //打标数
+    int wxNum = 0;
+    public JSONObject twoQueryWxData(JSONObject cmdWxDataJson, Account account){
+//        String cmdWxData = "{'name': 'aa1610148754', 'fox': '有', 'crocodile': '无'}";
+        System.out.println(account.getWechat());
+        String cmdWxData = commandService.executeCmd("python3 /root/ZYJspider/spider.py wx "+account.getWechat());
+        switch (cmdWxData){
+            case "0":
+                //此微信号不存在，删除微信号
+                account.setWechat("");
+                accountService.updateByKey(account);
+                break;
+            case "1":
+                //捉妖镜出错
+                break;
+            default:
+                try {
+                    //微信号查询json
+                    cmdWxDataJson = JSONObject.parseObject(cmdWxData.replaceAll("'", "\"").replaceAll("False", "false"));
+                    //打标数
+                    wxNum = 0;
+                    if (("有".equals(cmdWxDataJson.get("fox")))) {
+                        wxNum++;
+                    }
+                    if (("有".equals(cmdWxDataJson.get("crocodile")))) {
+                        wxNum++;
+                    }
+                    cmdWxDataJson.put("wxNum", wxNum);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+        }
+        return cmdWxDataJson;
+    }
+
+    /**
+     * 判断python返回(一次查询)
      *
      * @param cmdData
      * @return
      */
-    public ResultUtils pdCmdData(String cmdData) {
+    public ResultUtils pdCmdDataOne(String cmdData) {
         switch (cmdData) {
             case "0":
                 return ResultUtils.fail(5000, "账号不存在");
             case "1":
-                return ResultUtils.fail(5001, "提交长度非法，请重新提交！");
+                return ResultUtils.fail(5001, "捉妖镜出错，请检查账号是否正确，捉妖镜是否正常运行");
+            case "2":
+                return ResultUtils.fail(5002, "提交长度非法，请重新提交！");
             case "{'iff': 'y'}":
-                return ResultUtils.fail(5002, "请登录捉妖镜输入验证码");
+                return ResultUtils.fail(5003, "请登录捉妖镜输入验证码");
             default:
                 return null;
         }
     }
+
 
 }

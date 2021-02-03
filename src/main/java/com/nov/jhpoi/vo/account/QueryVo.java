@@ -21,13 +21,9 @@ public class QueryVo {
 
     private String sex;
 
-//    private String shopName;
-
     /**
      * 微信号Id
      */
     private String weChatId;
 
-    private Integer page;
-    private Integer limit;
 }

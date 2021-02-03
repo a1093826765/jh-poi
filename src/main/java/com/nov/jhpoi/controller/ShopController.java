@@ -52,7 +52,7 @@ public class ShopController {
         shop.setShopmoney(insertVo.getShopMoney());
         shop.setShoptime(insertVo.getShopTime());
         shopService.save(shop);
-        return ResultUtils.success();
+        return ResultUtils.success(id);
     }
 
     /**
