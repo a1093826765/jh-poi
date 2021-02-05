@@ -2,7 +2,6 @@ package com.nov.jhpoi.vo.account;
 
 import lombok.Data;
 
-import java.util.Date;
 
 /**
  * Created by IntelliJ IDEA.
@@ -25,5 +24,10 @@ public class QueryVo {
      * 微信号Id
      */
     private String weChatId;
+
+    /**
+     * 店铺Id
+     */
+    private String shopNameId;
 
 }

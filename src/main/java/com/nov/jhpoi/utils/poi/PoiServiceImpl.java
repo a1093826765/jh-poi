@@ -1,9 +1,9 @@
 package com.nov.jhpoi.utils.poi;
 
-import cn.hutool.core.date.DateUtil;
 import com.nov.jhpoi.bean.PoiBean;
 import com.nov.jhpoi.sql.model.*;
 import com.nov.jhpoi.sql.service.AccountService;
+import com.nov.jhpoi.sql.service.ShopNameService;
 import com.nov.jhpoi.sql.service.ShopService;
 import com.nov.jhpoi.sql.service.WeChatService;
 import com.nov.jhpoi.utils.pojo.ResultUtils;
@@ -37,6 +37,9 @@ public class PoiServiceImpl implements PoiService {
     @Autowired
     private WeChatService weChatService;
 
+    @Autowired
+    private ShopNameService shopNameService;
+
     /**
      * 文件上传
      * @param file
@@ -45,13 +48,13 @@ public class PoiServiceImpl implements PoiService {
     @Override
     public ResultUtils fileUpload(MultipartFile file) {
         int successNum=0;
-        if (!Utils.checkExtension(file)) {
+        if (!PoiUtils.checkExtension(file)) {
             return ResultUtils.fail(5000,"请求文件类型错误:后缀名错误"+"-->成功:"+successNum+"行数据");
         }
         try {
-            if (Utils.isOfficeFile(file)) {
+            if (PoiUtils.isOfficeFile(file)) {
                 //正确的文件类型 自动判断2003或者2007
-                Workbook workbook = Utils.getWorkbookAuto(file);
+                Workbook workbook = PoiUtils.getWorkbookAuto(file);
                 //默认只有一个sheet
                 Sheet sheet = workbook.getSheetAt(0);
                 //获得sheet有多少行
@@ -143,6 +146,8 @@ public class PoiServiceImpl implements PoiService {
         List<Shop> shopList;
         ShopExample shopExample=new ShopExample();
         ShopExample.Criteria shopExampleCriteria = shopExample.createCriteria();
+        ShopNameKey shopNameKey=new ShopNameKey();
+        ShopName shopName;
         //在表中存放查询到的数据放入对应的列
         for (Account account : accountList) {
             shopExampleCriteria.andIdEqualTo(account.getId());
@@ -151,7 +156,9 @@ public class PoiServiceImpl implements PoiService {
                 HSSFRow row1 = sheet.createRow(rowNum);
                 row1.createCell(0).setCellValue(rowNum);
                 row1.createCell(1).setCellValue(account.getAccount());
-                row1.createCell(2).setCellValue(shop.getShopname());
+                shopNameKey.setShopnameid(shop.getShopnameid());
+                shopName = shopNameService.getShopNameByKey(shopNameKey);
+                row1.createCell(2).setCellValue(shopName.getShopname());
                 row1.createCell(3).setCellValue(shop.getShoptime());
                 rowNum++;
             }
@@ -174,6 +181,8 @@ public class PoiServiceImpl implements PoiService {
     ShopExample shopExample=new ShopExample();
     WeChatExample weChatExample=new WeChatExample();
     WeChat weChatSql=new WeChat();
+    ShopName shopNameSql=new ShopName();
+    ShopNameExample shopNameExample=new ShopNameExample();
 
 
     /**
@@ -183,25 +192,25 @@ public class PoiServiceImpl implements PoiService {
     public void setSqlData(PoiBean poiBean){
         pdWeChat(poiBean.getShopWeChatNum());
         pdAccount(poiBean.getAccountNum(),poiBean.getWeChatNum());
-        pdShop(poiBean.getShopMoney(),poiBean.getTime(),poiBean.getShopName());
+
+        pdShop(poiBean.getShopMoney(),poiBean.getTime());
     }
 
     /**
      * 判断店铺是否存在，不存在则写入，存在则忽略
      * @param shopMoney
      * @param shopTime
-     * @param shopName
      */
-    public void pdShop(String shopMoney,Date shopTime,String shopName){
+    public void pdShop(String shopMoney,Date shopTime){
         ShopExample.Criteria shopExampleCriteria = shopExample.createCriteria();
         shopExampleCriteria.andShopmoneyEqualTo(shopMoney);
         shopExampleCriteria.andShoptimeEqualTo(shopTime);
-        shopExampleCriteria.andShopnameEqualTo(shopName);
+        shopExampleCriteria.andShopnameidEqualTo(shopNameSql.getShopnameid());
         List<Shop> shopList = shopService.getShopByExample(shopExample);
         if(shopList.size()<=0){
             shopSql.setShopmoney(shopMoney);
             shopSql.setShoptime(shopTime);
-            shopSql.setShopname(shopName);
+            shopSql.setShopnameid(shopNameSql.getShopnameid());
             shopSql.setId(accountSql.getId());
             shopSql.setShopid(UUID.randomUUID().toString());
             shopService.save(shopSql);
@@ -253,5 +262,24 @@ public class PoiServiceImpl implements PoiService {
         }
         accountExample.clear();
     }
+
+    /**
+     * 判断店铺名是否存在，不存在则写入，存在则忽略
+     * @param shopName
+     */
+    public void pdShopName(String shopName){
+        ShopNameExample.Criteria shopNameExampleCriteria = shopNameExample.createCriteria();
+        shopNameExampleCriteria.andShopnameEqualTo(shopName);
+        List<ShopName> shopNameList = shopNameService.getShopNameByExample(shopNameExample);
+        if(shopNameList.size()<=0){
+            shopNameSql.setShopnameid(UUID.randomUUID().toString());
+            shopNameSql.setShopname(shopName);
+            shopNameService.save(shopNameSql);
+        }else{
+            shopNameSql=shopNameList.get(0);
+        }
+        shopNameExample.clear();
+    }
+
 }
 

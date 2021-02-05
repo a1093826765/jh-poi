@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.nov.jhpoi.sql.model.*;
 import com.nov.jhpoi.sql.service.AccountService;
+import com.nov.jhpoi.sql.service.ShopNameService;
 import com.nov.jhpoi.sql.service.ShopService;
 import com.nov.jhpoi.utils.pojo.ResultUtils;
 import com.nov.jhpoi.vo.shop.DeleteVo;
@@ -34,6 +35,9 @@ public class ShopController {
     @Autowired
     ShopService shopService;
 
+    @Autowired
+    ShopNameService shopNameService;
+
     /**
      * 添加店铺
      * @param insertVo
@@ -48,7 +52,22 @@ public class ShopController {
         UUID id = UUID.randomUUID();
         shop.setShopid(id.toString());
         shop.setId(account.getId());
-        shop.setShopname(insertVo.getShopName());
+        ShopNameExample shopNameExample=new ShopNameExample();
+        ShopNameExample.Criteria shopNameExampleCriteria = shopNameExample.createCriteria();
+        shopNameExampleCriteria.andShopnameEqualTo(insertVo.getShopName());
+        List<ShopName> shopNameList = shopNameService.getShopNameByExample(shopNameExample);
+        if(shopNameList.size()>0){
+            //店铺存在
+            shop.setShopnameid(shopNameList.get(0).getShopnameid());
+        }else{
+            //店铺不存在
+            UUID shopNameId = UUID.randomUUID();
+            ShopName shopName=new ShopName();
+            shopName.setShopnameid(shopNameId.toString());
+            shopName.setShopname(insertVo.getShopName());
+            shopNameService.save(shopName);
+            shop.setShopnameid(shopNameId.toString());
+        }
         shop.setShopmoney(insertVo.getShopMoney());
         shop.setShoptime(insertVo.getShopTime());
         shopService.save(shop);
@@ -68,20 +87,23 @@ public class ShopController {
         return ResultUtils.success();
     }
 
-    /**
-     * 查询店铺
-     * @param 
-     * @return
-     */
+//    /**
+//     * 查询店铺
+//     * @param
+//     * @return
+//     */
 //    @PostMapping("/query")
 //    public ResultUtils query(){
 //        List<Shop> shopList = shopService.getShopByExample(new ShopExample());
 //        JSONArray jsonArray=new JSONArray();
+//        ShopNameKey shopNameKey=new ShopNameKey();
+//        ShopName shopName;
 //        for(Shop shop:shopList){
 //            JSONObject jsonObject=new JSONObject();
 //            jsonObject.put("shopId",shop.getId());
-//            jsonObject.put("shopName",shop.getShopname());
-//            jsonObject.put("id",shop.getId());
+//            shopNameKey.setShopnameid(shop.getShopnameid());
+//            shopName = shopNameService.getShopNameByKey(shopNameKey);
+//            jsonObject.put("shopName",shopName.getShopname());
 //            jsonArray.add(jsonObject);
 //        }
 //        return ResultUtils.success(jsonArray);

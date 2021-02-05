@@ -18,7 +18,7 @@ import java.util.Objects;
  * @Author: november
  * Date: 2021/1/21 12:31 下午
  */
-public class Utils {
+public class PoiUtils {
     /**
      * 判断是否office文件
      * @param inputStream
