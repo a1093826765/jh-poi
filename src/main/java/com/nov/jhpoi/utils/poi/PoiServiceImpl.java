@@ -15,8 +15,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.UUID;
 
 /**
@@ -192,7 +194,7 @@ public class PoiServiceImpl implements PoiService {
     public void setSqlData(PoiBean poiBean){
         pdWeChat(poiBean.getShopWeChatNum());
         pdAccount(poiBean.getAccountNum(),poiBean.getWeChatNum());
-
+        pdShopName(poiBean.getShopName());
         pdShop(poiBean.getShopMoney(),poiBean.getTime());
     }
 
@@ -250,6 +252,9 @@ public class PoiServiceImpl implements PoiService {
         List<Account> accountList = accountService.getAccountByExample(accountExample);
         if(accountList.size()<=0){
             accountSql.setId(UUID.randomUUID().toString());
+
+            TimeZone timeZone = TimeZone.getTimeZone("GMT+8");
+            TimeZone.setDefault(timeZone);
             accountSql.setTime(new Date());
             accountSql.setSex("");
             accountSql.setAccount(account);

@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.File;
 import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.UUID;
 
 /**
@@ -108,6 +109,8 @@ public class AccountController {
                 account.setId(id);
                 account.setAccount(queryTbDataVo.getAccount());
                 account.setSex((String) cmdDataJson.get("sex"));
+                TimeZone timeZone = TimeZone.getTimeZone("GMT+8");
+                TimeZone.setDefault(timeZone);
                 account.setTime(new Date());
                 accountService.save(account);
             } else {
@@ -134,9 +137,7 @@ public class AccountController {
                 if (account.getWechat() != null && !"".equals(account.getWechat())) {
                     //旺旺对应的微信号不为空
                     cmdWxDataJson = twoQueryWxData(cmdWxDataJson, account);
-                    if (cmdWxDataJson.size() != 0) {
-                        cmdDataJson.put("weChatNum", account.getWechat());
-                    }
+                    cmdDataJson.put("weChatNum", account.getWechat());
                 }
             }
             String shopWeChatNum = null;
@@ -145,8 +146,8 @@ public class AccountController {
                 weChatKey.setWechatid(account.getWechatid());
                 shopWeChatNum = weChatService.getWeChatByKey(weChatKey).getWechatnum();
             }
-            fileService.updateTxtFile(account.getId() + ".txt", cmdDataJson);
             cmdDataJson.put("shopWeChatNum", shopWeChatNum);
+            fileService.updateTxtFile(account.getId() + ".txt", cmdDataJson);
             return ResultUtils.success(new AccountQueryDataJson(id, cmdDataJson, cmdWxDataJson, shopData).toJson());
         } else {
             return resultUtils;
@@ -306,7 +307,6 @@ public class AccountController {
      */
     public JSONObject twoQueryWxData(JSONObject cmdWxDataJson, Account account) {
 //        String cmdWxData = "{'name': 'aa1610148754', 'fox': '有', 'crocodile': '无'}";
-        System.out.println(account.getWechat());
         String cmdWxData = commandService.executeCmd("python3 /root/ZYJspider/spider.py wx " + account.getWechat());
         switch (cmdWxData) {
             case "0":

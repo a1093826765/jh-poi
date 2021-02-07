@@ -4,6 +4,9 @@ import com.nov.jhpoi.config.Address;
 import com.nov.jhpoi.utils.pojo.TokenUtils;
 import org.junit.jupiter.api.Test;
 
+import java.util.Date;
+import java.util.TimeZone;
+
 /**
  * Created by IntelliJ IDEA.
  *
@@ -14,6 +17,9 @@ public class TokenTest {
 
     @Test
     public void get(){
-        System.out.println(TokenUtils.getToken(1L, Address.TOKEN_SEC));
+        System.out.println(new Date());
+        TimeZone timeZone = TimeZone.getTimeZone("GMT+0");
+        TimeZone.setDefault(timeZone);
+        System.out.println(new Date());
     }
 }

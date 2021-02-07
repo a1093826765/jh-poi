@@ -8,6 +8,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.TimeZone;
 
 /**
  * token拦截器
@@ -17,9 +18,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-//        System.out.println("token拦截器");
         String token=request.getHeader("Authorization");
-//        System.out.println(token);
         if(token==null){
             // token为空,用户未登录
             // response.sendRedirect("");
