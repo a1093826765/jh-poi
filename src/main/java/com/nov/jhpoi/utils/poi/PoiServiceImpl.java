@@ -103,6 +103,7 @@ public class PoiServiceImpl implements PoiService {
                             return ResultUtils.fail(5000,"文件内部数据存在空值"+"-->成功:"+successNum+"行数据");
                         }
                     }
+                    System.out.println("导入"+poiBean.toString());
                     setSqlData(poiBean);
                     successNum++;
 
@@ -192,7 +193,11 @@ public class PoiServiceImpl implements PoiService {
      * @param poiBean
      */
     public void setSqlData(PoiBean poiBean){
-        pdWeChat(poiBean.getShopWeChatNum());
+        if(poiBean.getShopWeChatNum()==null || poiBean.getShopWeChatNum().equals("")){
+            weChatSql.setWechatid(null);
+        }else {
+            pdWeChat(poiBean.getShopWeChatNum());
+        }
         pdAccount(poiBean.getAccountNum(),poiBean.getWeChatNum());
         pdShopName(poiBean.getShopName());
         pdShop(poiBean.getShopMoney(),poiBean.getTime());
@@ -227,7 +232,6 @@ public class PoiServiceImpl implements PoiService {
      * @param weChatNum
      */
     public void pdWeChat(String weChatNum){
-
         WeChatExample.Criteria weChatExampleCriteria = weChatExample.createCriteria();
         weChatExampleCriteria.andWechatnumEqualTo(weChatNum);
         List<WeChat> weChatList = weChatService.getWeChatByExample(weChatExample);

@@ -15,13 +15,13 @@ public interface FileService {
      * @param fileName
      * @param cmdJson
      */
-    void updateTxtFile(String fileName, JSONObject cmdJson);
+    void updateTxtFile(String fileName, JSONObject cmdJson,String path);
 
     /**
      * 根据id查询文件
      * @param id
      * @return
      */
-    String queryTxtFilePath(String id);
+    String queryTxtFilePath(String id,String path);
 
 }

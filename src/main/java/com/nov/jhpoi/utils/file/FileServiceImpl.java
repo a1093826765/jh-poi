@@ -15,13 +15,13 @@ import static com.nov.jhpoi.config.Address.FILE_PATH;
 @Service
 public class FileServiceImpl implements FileService{
     @Override
-    public void updateTxtFile(String fileName, JSONObject cmdJson) {
-        FileUtils.writeMethod(FILE_PATH+fileName,cmdJson.toJSONString());
+    public void updateTxtFile(String fileName, JSONObject cmdJson,String path) {
+        FileUtils.writeMethod(path+fileName,cmdJson.toJSONString());
     }
 
     @Override
-    public String queryTxtFilePath(String id) {
-        return FileUtils.readMethod(FILE_PATH+id+".txt");
+    public String queryTxtFilePath(String id,String path) {
+        return FileUtils.readMethod(path+id+".txt");
     }
 
 }

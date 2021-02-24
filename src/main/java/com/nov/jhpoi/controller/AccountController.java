@@ -69,7 +69,7 @@ public class AccountController {
     @PostMapping("/queryTbData")
     public ResultUtils queryTbData(@Validated @RequestBody QueryTbDataVo queryTbDataVo) {
         String cmdData = commandService.executeCmd("python3 /root/ZYJspider/spider.py tb " + queryTbDataVo.getAccount());
-        System.out.println(cmdData);
+//        System.out.println(cmdData);
 //        String cmdData = "{'type1Ph': 0, 'result': '正常', 'nearWeekShop': 11, 'sex': '男', 'vip_level': '0', 'badNum': 0, 'lastWeekShop': 5, 'type6Ph': 0, 'type3Ph': 0, 'yunBlack': 0, 'lowVip3': 'no', 'received_rate': '100.00%', 'downNum': 1,'costType': 'costType5', 'created': '2003-06-22 06:59:25(约17.62年)', 'type1': 0, 'goodNum': 0, 'type3': 1, 'type2': 1, 'type2Ph': 0, 'type5': 0, 'type4': 1, 'type6': 0, 'isNeedCost': False, 'item_num': 0, 'costMonsteoin': 0, 'aliimSim': '哈哈', 'proveNum': 0, 'nameconform_word': '未实名', 'buyerAvg': '0.00', 'buyerCre': '0心', 'queryTime': '2021-01-31 19:30:34', 'vip_info': 'vip0', 'type5Ph': 0, 'registDay': '6433天', 'sellerCre':'未开店', 'nameconform_word_color': '#808080', 'ifShow': 'yes', 'type4Ph': 0}";
         ResultUtils resultUtils = pdCmdDataOne(cmdData);
         if (resultUtils == null) {
@@ -147,7 +147,7 @@ public class AccountController {
                 shopWeChatNum = weChatService.getWeChatByKey(weChatKey).getWechatnum();
             }
             cmdDataJson.put("shopWeChatNum", shopWeChatNum);
-            fileService.updateTxtFile(account.getId() + ".txt", cmdDataJson);
+            fileService.updateTxtFile(account.getId() + ".txt", cmdDataJson,Address.FILE_PATH);
             return ResultUtils.success(new AccountQueryDataJson(id, cmdDataJson, cmdWxDataJson, shopData).toJson());
         } else {
             return resultUtils;
@@ -222,7 +222,7 @@ public class AccountController {
                 File file = new File(Address.FILE_PATH + account.getId() + ".txt");
                 if (file.exists()) {
                     //文件存在
-                    String conTxt = fileService.queryTxtFilePath(account.getId());
+                    String conTxt = fileService.queryTxtFilePath(account.getId(),Address.FILE_PATH);
                     cmdDataJson = JSONObject.parseObject(conTxt);
                     jsonArray = queryUtils(account, jsonArray, cmdDataJson, queryVo);
                 } else {
@@ -245,7 +245,7 @@ public class AccountController {
                         } catch (Exception e) {
                             return ResultUtils.fail(500, cmdData);
                         }
-                        fileService.updateTxtFile(account.getId() + ".txt", cmdDataJson);
+                        fileService.updateTxtFile(account.getId() + ".txt", cmdDataJson,Address.FILE_PATH);
                         jsonArray = queryUtils(account, jsonArray, cmdDataJson, queryVo);
                     }
                 }
@@ -267,25 +267,29 @@ public class AccountController {
         Account account = accountService.getAccountByKey(accountKey);
 
         if (account != null) {
-            WeChatExample weChatExample = new WeChatExample();
-            WeChatExample.Criteria weChatExampleCriteria = weChatExample.createCriteria();
-            weChatExampleCriteria.andWechatnumEqualTo(updateWeChatVo.getShopWeChatNum());
-            List<WeChat> weChatList = weChatService.getWeChatByExample(weChatExample);
-            String weChatId;
-            if (weChatList.size() > 0) {
-                WeChat weChat = weChatList.get(0);
-                weChat.setWechatnum(updateWeChatVo.getShopWeChatNum());
-                weChatService.updateByKey(weChat);
-                weChatId = weChat.getWechatid();
-            } else {
-                WeChat weChat = new WeChat();
-                weChatId = UUID.randomUUID().toString();
-                weChat.setWechatid(weChatId);
-                weChat.setWechatnum(updateWeChatVo.getShopWeChatNum());
-                weChatService.save(weChat);
+            if(updateWeChatVo.getShopWeChatNum().equals("") || updateWeChatVo.getShopWeChatNum()==null){
+                account.setWechatid(null);
+            }else {
+                WeChatExample weChatExample = new WeChatExample();
+                WeChatExample.Criteria weChatExampleCriteria = weChatExample.createCriteria();
+                weChatExampleCriteria.andWechatnumEqualTo(updateWeChatVo.getShopWeChatNum());
+                List<WeChat> weChatList = weChatService.getWeChatByExample(weChatExample);
+                String weChatId;
+                if (weChatList.size() > 0) {
+                    WeChat weChat = weChatList.get(0);
+                    weChat.setWechatnum(updateWeChatVo.getShopWeChatNum());
+                    weChatService.updateByKey(weChat);
+                    weChatId = weChat.getWechatid();
+                } else {
+                    WeChat weChat = new WeChat();
+                    weChatId = UUID.randomUUID().toString();
+                    weChat.setWechatid(weChatId);
+                    weChat.setWechatnum(updateWeChatVo.getShopWeChatNum());
+                    weChatService.save(weChat);
+                }
+                account.setWechatid(weChatId);
             }
             account.setWechat(updateWeChatVo.getWeChatNum());
-            account.setWechatid(weChatId);
             accountService.updateByKey(account);
             return ResultUtils.success();
         } else {
@@ -320,13 +324,14 @@ public class AccountController {
             default:
                 try {
                     //微信号查询json
-                    cmdWxDataJson = JSONObject.parseObject(cmdWxData.replaceAll("'", "\"").replaceAll("False", "false"));
+                    cmdWxDataJson = JSONObject.parseObject(cmdWxData.replaceAll("'", "\"").replaceAll("False", "false").replaceAll("有","yes").replaceAll("无","no"));
+                    fileService.updateTxtFile(account.getWechat()+".txt",cmdWxDataJson,Address.WX_FILE_PATH);
                     //打标数
                     wxNum = 0;
-                    if (("有".equals(cmdWxDataJson.get("fox")))) {
+                    if ("yes".equals(cmdWxDataJson.get("fox"))) {
                         wxNum++;
                     }
-                    if (("有".equals(cmdWxDataJson.get("crocodile")))) {
+                    if ("yes".equals(cmdWxDataJson.get("crocodile"))) {
                         wxNum++;
                     }
                     cmdWxDataJson.put("wxNum", wxNum);
@@ -368,10 +373,11 @@ public class AccountController {
      * @return
      */
     WeChatKey weChatKey = new WeChatKey();
-    JSONObject cmdWxDataJson = new JSONObject();
+    JSONObject cmdWxDataJson;
 
     public JSONArray queryUtils(Account account, JSONArray jsonArray, JSONObject cmdDataJson, QueryVo queryVo) {
         //更新性别，并筛选
+        cmdWxDataJson = new JSONObject();
         String sex = (String) cmdDataJson.get("sex");
         if (!account.getSex().equals(sex)) {
             account.setSex(sex);
@@ -386,7 +392,23 @@ public class AccountController {
 
             if (account.getWechat() != null && !"".equals(account.getWechat())) {
                 //旺旺对应的微信号不为空
-                cmdWxDataJson = twoQueryWxData(cmdWxDataJson, account);
+                File file = new File(Address.WX_FILE_PATH + account.getWechat() + ".txt");
+                if(file.exists()){
+                    //文件存在
+                    cmdWxDataJson=JSONObject.parseObject(fileService.queryTxtFilePath(account.getWechat(),Address.WX_FILE_PATH));
+                    //打标数
+                    wxNum = 0;
+                    if ("yes".equals(cmdWxDataJson.get("fox"))) {
+                        wxNum++;
+                    }
+                    if ("yes".equals(cmdWxDataJson.get("crocodile"))) {
+                        wxNum++;
+                    }
+                    cmdWxDataJson.put("wxNum", wxNum);
+                }else {
+                    //文件不存在
+                    cmdWxDataJson = twoQueryWxData(cmdWxDataJson, account);
+                }
                 cmdDataJson.put("weChatNum", account.getWechat());
             }
             cmdDataJson.put("wxData", cmdWxDataJson);
