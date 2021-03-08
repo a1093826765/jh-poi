@@ -15,7 +15,6 @@ public class FileUtils {
      */
     public static void writeMethod(String fileNamePath, String conTxt) {
         try {
-            System.out.println("文件写入："+conTxt);
             BufferedWriter out = new BufferedWriter(new OutputStreamWriter( new FileOutputStream(fileNamePath), StandardCharsets.UTF_8));
             out.write(new String(conTxt.getBytes(StandardCharsets.UTF_8)));
             out.newLine();  //注意\n不一定在各种计算机上都能产生换行的效果

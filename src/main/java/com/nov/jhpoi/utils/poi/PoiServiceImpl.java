@@ -254,6 +254,7 @@ public class PoiServiceImpl implements PoiService {
         AccountExample.Criteria accountExampleCriteria = accountExample.createCriteria();
         accountExampleCriteria.andAccountEqualTo(account);
         List<Account> accountList = accountService.getAccountByExample(accountExample);
+        System.out.println(account+"账号查询结果："+accountList.size());
         if(accountList.size()<=0){
             accountSql.setId(UUID.randomUUID().toString());
 

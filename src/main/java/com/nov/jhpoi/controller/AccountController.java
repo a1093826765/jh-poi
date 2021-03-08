@@ -1,6 +1,5 @@
 package com.nov.jhpoi.controller;
 
-import cn.hutool.core.date.DateUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.nov.jhpoi.config.Address;
@@ -61,16 +60,34 @@ public class AccountController {
     ShopNameService shopNameService;
 
     /**
+     * python查询json，统计降权数
+     */
+    static final int PYTHON_TYPE_NUM=6;
+
+    /**
+     * 匹配微信是否降权
+     */
+    static final String WX_VALUE="yes";
+
+    /**
+     * 微信降权字段1
+     */
+    static final String WX_PYTHON_NAME1="fox";
+
+    /**
+     * 微信降权字段2
+     */
+    static final String WX_PYTHON_NAME2="crocodile";
+
+    /**
      * 查询旺旺号详细数据
      *
-     * @param queryTbDataVo
-     * @return
+     * @param queryTbDataVo 批量查询json
+     * @return ResultUtils
      */
     @PostMapping("/queryTbData")
     public ResultUtils queryTbData(@Validated @RequestBody QueryTbDataVo queryTbDataVo) {
         String cmdData = commandService.executeCmd("python3 /root/ZYJspider/spider.py tb " + queryTbDataVo.getAccount());
-//        System.out.println(cmdData);
-//        String cmdData = "{'type1Ph': 0, 'result': '正常', 'nearWeekShop': 11, 'sex': '男', 'vip_level': '0', 'badNum': 0, 'lastWeekShop': 5, 'type6Ph': 0, 'type3Ph': 0, 'yunBlack': 0, 'lowVip3': 'no', 'received_rate': '100.00%', 'downNum': 1,'costType': 'costType5', 'created': '2003-06-22 06:59:25(约17.62年)', 'type1': 0, 'goodNum': 0, 'type3': 1, 'type2': 1, 'type2Ph': 0, 'type5': 0, 'type4': 1, 'type6': 0, 'isNeedCost': False, 'item_num': 0, 'costMonsteoin': 0, 'aliimSim': '哈哈', 'proveNum': 0, 'nameconform_word': '未实名', 'buyerAvg': '0.00', 'buyerCre': '0心', 'queryTime': '2021-01-31 19:30:34', 'vip_info': 'vip0', 'type5Ph': 0, 'registDay': '6433天', 'sellerCre':'未开店', 'nameconform_word_color': '#808080', 'ifShow': 'yes', 'type4Ph': 0}";
         ResultUtils resultUtils = pdCmdDataOne(cmdData);
         if (resultUtils == null) {
             //查询结果无问题
@@ -84,7 +101,8 @@ public class AccountController {
 
             //打标数
             int tbNum = 0;
-            for (int i = 1; i <= 6; i++) {
+
+            for (int i = 1; i <= PYTHON_TYPE_NUM; i++) {
                 tbNum += (Integer) cmdDataJson.get("type" + i);
             }
             cmdDataJson.put("tbNum", tbNum);
@@ -102,6 +120,7 @@ public class AccountController {
             Account account;
             //微信查询json
             JSONObject cmdWxDataJson = new JSONObject();
+            System.out.println("批量查询："+queryTbDataVo.getAccount()+"---"+accountList.size());
             if (accountList.size() <= 0) {
                 //旺旺号不存在,保存旺旺
                 id = UUID.randomUUID().toString();
@@ -157,8 +176,8 @@ public class AccountController {
     /**
      * 查询微信号详细数据
      *
-     * @param queryWxDataVo
-     * @return
+     * @param queryWxDataVo 微信查询json
+     * @return ResultUtils
      */
     @PostMapping("/queryWxData")
     public ResultUtils queryWxData(@Validated @RequestBody QueryWxDataVo queryWxDataVo) {
@@ -181,8 +200,8 @@ public class AccountController {
     /**
      * 批量查询
      *
-     * @param queryVo
-     * @return
+     * @param queryVo 批量查询json
+     * @return ResultUtils
      */
     @PostMapping("/query")
     public ResultUtils query(@Validated @RequestBody QueryVo queryVo) {
@@ -227,8 +246,6 @@ public class AccountController {
                     jsonArray = queryUtils(account, jsonArray, cmdDataJson, queryVo);
                 } else {
                     //文件不存在
-//            String cmdData = "{'type1Ph': 0, 'result': '正常', 'nearWeekShop': 11, 'sex': '男', 'vip_level': '0', 'badNum': 0, 'lastWeekShop': 5, 'type6Ph': 0, 'type3Ph': 0, 'yunBlack': 0, 'lowVip3': 'no', 'received_rate': '100.00%', 'downNum': 1,'costType': 'costType5', 'created': '2003-06-22 06:59:25(约17.62年)', 'type1': 0, 'goodNum': 0, 'type3': 1, 'type2': 1, 'type2Ph': 0, 'type5': 0, 'type4': 1, 'type6': 0, 'isNeedCost': False, 'item_num': 0, 'costMonsteoin': 0, 'aliimSim': '哈哈', 'proveNum': 0, 'nameconform_word': '未实名', 'buyerAvg': '0.00', 'buyerCre': '0心', 'queryTime': '2021-01-31 19:30:34', 'vip_info': 'vip0', 'type5Ph': 0, 'registDay': '6433天', 'sellerCre':'未开店', 'nameconform_word_color': '#808080', 'ifShow': 'yes', 'type4Ph': 0}";
-//                String cmdData="0";
                     String cmdData = commandService.executeCmd("python3 /root/ZYJspider/spider.py tb " + account.getAccount());
                     if ("{'iff': 'y'}".equals(cmdData)) {
                         return ResultUtils.fail(5002, "请登录捉妖镜输入验证码");
@@ -256,9 +273,8 @@ public class AccountController {
 
     /**
      * 修改本地微信号与微信号
-     *
-     * @param
-     * @return
+     * @param updateWeChatVo 修改本地微信号与微信号json
+     * @return ResultUtils
      */
     @PostMapping("/updateWeChat")
     public ResultUtils updateWeChat(@Validated @RequestBody UpdateWeChatVo updateWeChatVo) {
@@ -267,7 +283,7 @@ public class AccountController {
         Account account = accountService.getAccountByKey(accountKey);
 
         if (account != null) {
-            if(updateWeChatVo.getShopWeChatNum().equals("") || updateWeChatVo.getShopWeChatNum()==null){
+            if("".equals(updateWeChatVo.getShopWeChatNum()) || updateWeChatVo.getShopWeChatNum()==null){
                 account.setWechatid(null);
             }else {
                 WeChatExample weChatExample = new WeChatExample();
@@ -305,18 +321,16 @@ public class AccountController {
     /**
      * 二级微信查询
      *
-     * @param cmdWxDataJson
-     * @param account
-     * @return
+     * @param cmdWxDataJson 照妖镜微信查询json
+     * @param account 旺旺号
+     * @return 解析完成后的微信json
      */
     public JSONObject twoQueryWxData(JSONObject cmdWxDataJson, Account account) {
 //        String cmdWxData = "{'name': 'aa1610148754', 'fox': '有', 'crocodile': '无'}";
         String cmdWxData = commandService.executeCmd("python3 /root/ZYJspider/spider.py wx " + account.getWechat());
         switch (cmdWxData) {
             case "0":
-                //此微信号不存在，删除微信号
-//                account.setWechat("");
-//                accountService.updateByKey(account);
+                //此微信号不存在
                 break;
             case "1":
                 //捉妖镜出错
@@ -328,10 +342,10 @@ public class AccountController {
                     fileService.updateTxtFile(account.getWechat()+".txt",cmdWxDataJson,Address.WX_FILE_PATH);
                     //打标数
                     wxNum = 0;
-                    if ("yes".equals(cmdWxDataJson.get("fox"))) {
+                    if (WX_VALUE.equals(cmdWxDataJson.get(WX_PYTHON_NAME1))) {
                         wxNum++;
                     }
-                    if ("yes".equals(cmdWxDataJson.get("crocodile"))) {
+                    if (WX_VALUE.equals(cmdWxDataJson.get(WX_PYTHON_NAME2))) {
                         wxNum++;
                     }
                     cmdWxDataJson.put("wxNum", wxNum);
@@ -345,8 +359,8 @@ public class AccountController {
     /**
      * 判断python返回(一次查询)
      *
-     * @param cmdData
-     * @return
+     * @param cmdData python返回
+     * @return ResultUtils或null null代表正常
      */
     public ResultUtils pdCmdDataOne(String cmdData) {
         switch (cmdData) {
@@ -366,11 +380,11 @@ public class AccountController {
     /**
      * 批量查询工具方法
      *
-     * @param account
-     * @param jsonArray
-     * @param cmdDataJson
-     * @param queryVo
-     * @return
+     * @param account 旺旺号
+     * @param jsonArray 批量查询数组
+     * @param cmdDataJson 旺旺号查询json
+     * @param queryVo 批量查询json
+     * @return JSONArray 批量查询数组
      */
     WeChatKey weChatKey = new WeChatKey();
     JSONObject cmdWxDataJson;
@@ -398,10 +412,10 @@ public class AccountController {
                     cmdWxDataJson=JSONObject.parseObject(fileService.queryTxtFilePath(account.getWechat(),Address.WX_FILE_PATH));
                     //打标数
                     wxNum = 0;
-                    if ("yes".equals(cmdWxDataJson.get("fox"))) {
+                    if (WX_VALUE.equals(cmdWxDataJson.get(WX_PYTHON_NAME1))) {
                         wxNum++;
                     }
-                    if ("yes".equals(cmdWxDataJson.get("crocodile"))) {
+                    if (WX_VALUE.equals(cmdWxDataJson.get(WX_PYTHON_NAME2))) {
                         wxNum++;
                     }
                     cmdWxDataJson.put("wxNum", wxNum);
@@ -415,7 +429,7 @@ public class AccountController {
 
             //筛选已降权与未降权
             int num = 0;
-            for (int i = 1; i <= 6; i++) {
+            for (int i = 1; i <= PYTHON_TYPE_NUM; i++) {
                 num += (Integer) cmdDataJson.get("type" + i);
             }
             cmdDataJson.put("account", account.getAccount());
